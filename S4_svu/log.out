@@ -1,0 +1,29 @@
+------------------------------------------
+6-Feb-2020 15:29:02 -0800
+R58_k6s4_msl_5o2_a53_merged
+----------------mllw-----------------
+
+1) Plotting  d, Product
+max=-0.0251 m; min=-0.6387 m
+
+Check 407 no model datum points:
+max=-0.0573 m; min=-0.6387 m
+
+2) Plotting  dd, Correction 
+max=0.0458 m; min=-0.1324 m
+
+Check 407 no model datum points:
+max=-0.0368 m; min=-0.0368 m
+
+3) Plotting  diaPA, Uncertainty
+max=0.0000 m; min=0.0005 m
+
+Check 407 no model datum points:
+max=0.0282 m; min=0.0282 m
+Complex number found for 13 points
+Check small value points.
+max=0.0313 m; min=0.0005 m
+
+4) Plot and write  original model datum
+load('pre_process/SVU_input_mllw_181_R58_k6s4_msl_5o2_a53_merged', 'dm')
+max=-0.0114 m; min=-0.6044 m
