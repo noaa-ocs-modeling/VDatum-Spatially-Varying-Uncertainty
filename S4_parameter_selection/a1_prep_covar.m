@@ -1,5 +1,5 @@
 %=======================================================================
-% This code is a variation of same-name code in S4_svn by Liujuan.Tang
+% This code is a variation of same-name code in S4_svu by Liujuan.Tang
 % to assemble matrix 'covar' of three optional matrices - correlation of 
 % tidal envelopes, distance mask, and datum ratio mask - according to masks
 %
