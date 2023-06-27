@@ -1,4 +1,4 @@
-#!/mnt/lfs4/NOS/vdatum/Elena.Tolkova/miniconda3/bin/python3 -u
+#!/home/Elena.Tolkova/miniconda3/bin/python3 -u
 import netCDF4 as nc
 import numpy as np
 import sys
@@ -62,7 +62,9 @@ xx = (x[i1]-x[i2])*np.cos(np.pi*(y[i1]+y[i2])/360)
 yy = y[i1]-y[i2]
 xx = xx**2
 yy = yy**2
-dA0=111.111*np.sqrt(xx+yy)
+dA0=111.111*np.sqrt(xx+yy)   # (km) replace with 2 lines below for wtime
+#zz = 4.9*(z[i1]+z[i2])  # 4.9=9.8/2, local wave celerity
+#dA0=(111111.0/3600.0)*np.sqrt((xx+yy)/zz)  # (hr)
 
 #--------------compute for station iid-------------------------
 nn=len(x)  # number of nodes
