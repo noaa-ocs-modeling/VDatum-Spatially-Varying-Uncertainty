@@ -85,6 +85,7 @@ for nn=1:nsta
     netcdf.putAtt(ncid,eleid,'units','meter');
     varid = netcdf.getConstant('GLOBAL');
     netcdf.putAtt(ncid,varid,'station ID',ssite);
+    netcdf.putAtt(ncid,varid,'record_start_time',[sstart ' UTC']);
     netcdf.endDef(ncid)
 %----- write data ------------------------
     netcdf.putVar(ncid,lonid,lon)
