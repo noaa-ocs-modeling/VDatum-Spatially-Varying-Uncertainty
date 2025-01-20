@@ -19,10 +19,11 @@ def butter_lowpass_filter(data, cutOff, fs, order=4):
 
 ####################################################################
 
-def Check_Tide_Order(dt, h, l):
+def Check_Tide_Order(dt, h, l, iprint):
 #   Check that tides are in High-Low order
 #   Merge the Highs and Lows into a single time-ordered list
-    print (len(h), 'highs  ', len(l), 'lows   ')
+    if iprint > 0:
+        print (len(h), 'highs  ', len(l), 'lows   ')
     hi = 0
     li = 0
     tides = []
@@ -62,7 +63,7 @@ def Check_Tide_Order(dt, h, l):
    
 ####################################################################   
 
-def Check_Tides(dt, wl, h, l, Units_Factor):
+def Check_Tides(dt, wl, h, l, Units_Factor, iprint):
 # Check Tides for Minimum time and height between neighbors
 #   Merge the Highs and Lows into a single time-ordered list
 #    print (len(h), 'highs  ', len(l), 'lows   ')
@@ -108,10 +109,12 @@ def Check_Tides(dt, wl, h, l, Units_Factor):
         if ((dt[tides[t2]] - dt[tides[t1]]) < 7200 and (tide_types[t1] == tide_types[t2])):
 #           Delete second tide 
             if tide_types[t2] == "H":
-                print ('Deleting tide at ', dt[h[tide_indexes[t2]]], ' for min time')
+                if iprint>0:
+                    print ('Deleting tide at ', dt[h[tide_indexes[t2]]], ' for min time')
                 hi_mask[tide_indexes[t2]] = False
             else:
-                print ('Deleting tide at ', dt[l[tide_indexes[t2]]], ' for min time')
+                if iprint>0:
+                    print ('Deleting tide at ', dt[l[tide_indexes[t2]]], ' for min time')
                 lo_mask[tide_indexes[t2]] = False
             t2=t2+1
             aredeletedtides = 1;
@@ -119,10 +122,12 @@ def Check_Tides(dt, wl, h, l, Units_Factor):
                    (tide_types[t1] != tide_types[t2]):
 #           Delete both tides 
             if tide_types[t1] == "H":
-                print (' Deleting 2 tides at {0:s} for min time/range.'.format(str(dt[h[tide_indexes[t1]]])))
+                if iprint>0:
+                    print (' Deleting 2 tides at {0:s} for min time/range.'.format(str(dt[h[tide_indexes[t1]]])))
                 hi_mask[tide_indexes[t1]] = False
             else:
-                print (' Deleting 2 tides at {0:s} for min time/range.'.format(str(dt[l[tide_indexes[t1]]])))
+                if iprint>0:
+                    print (' Deleting 2 tides at {0:s} for min time/range.'.format(str(dt[l[tide_indexes[t1]]])))
                 lo_mask[tide_indexes[t1]] = False
             if tide_types[t2] == "H":
                 hi_mask[tide_indexes[t2]] = False
@@ -222,7 +227,7 @@ def Local_Min(dt, wl, h, t):
 
 ####################################################################   
 
-def ComputeDatums(x,y):
+def ComputeDatums(x,y,tcut,iprint):
 	# Set up Filter parameters.
 	fs= 86400 / (x[2]-x[1]) # Interval.seconds 
 	order = 6
@@ -238,7 +243,7 @@ def ComputeDatums(x,y):
 	
 	# check potential tides for spacing in time and height
 	CFactor=1  # metric units
-	highs_mask, lows_mask = Check_Tides(x, y, highs, lows, CFactor) 
+	highs_mask, lows_mask = Check_Tides(x, y, highs, lows, CFactor, iprint) 
 	
 	#  Delete bad tides
 	highs = highs[highs_mask]
@@ -261,7 +266,7 @@ def ComputeDatums(x,y):
 	if (len(highs)>3) and (len(lows)>3):
 	
 		#Check Tide Order
-		CTO = Check_Tide_Order(x, highs, lows)
+		CTO = Check_Tide_Order(x, highs, lows, iprint)
 		#if (CTO < 0):
 		#    SDC_Print(["***Warning*** - Tides are out of order"])
 		#    OutFile.close
@@ -273,11 +278,11 @@ def ComputeDatums(x,y):
 		low_dts = []
 		#   Just pick the highest/lowest point within specified window (+- 30 minutes)
 		for i in range(len(highs)):
-		    high_dt, high_val = Local_Max(x, y, highs[i], 3600)
+		    high_dt, high_val = Local_Max(x, y, highs[i], 1800)
 		    high_values.append(high_val)
 		    high_dts.append(high_dt)
 		for i in range(len(lows)):
-		    low_dt, low_val = Local_Min(x, y, lows[i], 3600)
+		    low_dt, low_val = Local_Min(x, y, lows[i], 1800)
 		    low_values.append(low_val)
 		    low_dts.append(low_dt)
 
@@ -287,10 +292,25 @@ def ComputeDatums(x,y):
 		    lows.append((-1)*low_values[i])
 		low_types=analyze_types(low_dts,lows)
 		
+		# added on Jan 19 2025 - remove extrema within tcut(hr) from the end of the record
+		if tcut>0:
+		    tstop = x[-1] - 3600 * tcut  # Calculate the cutoff threshold
+
+		    # Find indices where conditions are met
+		    ihcut = [i for i, val in enumerate(high_dts) if val > tstop]
+		    ilcut = [i for i, val in enumerate(low_dts) if val > tstop]
+
+		    # Print the number of items to be deleted
+		    if iprint>0:
+		        print("Deleting ", len(ihcut), " highs and ", len(ilcut), " lows in the last ", tcut, " hours")
+		else:
+		    ihcut = []
+		    ilcut = []
+    
 		#    Calculate Datums by First Reduction
 		MSL = np.mean(y, dtype=np.float64)
 		#     High Means 
-		for i in range(len(highs)): 
+		for i in range(len(highs)-len(ihcut)): 
 		    if (high_types[i] == 1):
 		        MHHW = MHHW + high_values[i]
 		        nhhighs = nhhighs + 1
@@ -308,7 +328,7 @@ def ComputeDatums(x,y):
 		MHW  = MHW  / nhighs
 		
 		#     Low Means 
-		for i in range(len(lows)): 
+		for i in range(len(lows)-len(ilcut)): 
 		    if (low_types[i] == 1):
 		        MLLW = MLLW + low_values[i]
 		        nllows = nllows + 1

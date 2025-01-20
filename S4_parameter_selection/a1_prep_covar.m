@@ -13,10 +13,10 @@
 %---------------------------------------------------------------------
 % 0. Input section
 clear variables
-masks=[0 4 0];
+masks=[0 1 0];
 i=1;
     imask_cvr=masks(i,1);
-    imask_dst=masks(i,2); % e-fold length Lr=imask_dst*55.5(km)
+    imask_dst=masks(i,2); % e-fold length Lr=imask_dst*55.5(km); e-time Lr=imask_dst*0.1(hr)
     imask_dm=masks(i,3);
 
 adcirc_dir='C:\Users\elena.tolkova\Documents\TXmodel\jet_runTXLAMS_v1\';
@@ -26,7 +26,7 @@ varname='mhw'; %{'mhhw';'mhw';'mlw';'mllw'}
 rmsok=1; % 1 Assign rms to tide stations without rms
          % 0 Do not use tide stations without rms
 
-path_pre='pre_process/'; % directory to save the pre_processed data
+path_pre='pre_process_wtime/'; % directory to save the pre_processed data
 if ~exist(path_pre,'dir')
     eval(['mkdir ' path_pre])
 end
@@ -38,9 +38,9 @@ n=657497
     
 %1. Station information; check stations with rms;    
 eval(['load ' adcirc_dir 'pmoe_datum'])
-    
+
+loc_norms=[];
 if rmsok~=1
-    loc_norms=[];
     orms=[pmoe_datum.orms]';
     loc_norms=find(isnan(orms) | abs(orms)>10);
     orms_valid=orms;
@@ -60,20 +60,25 @@ covar=ones(n,m);
     % 2. Load water distance from stations
     %   Prepare mdist
         run4dist='../'; 
-        pathin=[run4dist 'S1_wdist/output_dist_time_land_removed/'];
+%        pathin=[run4dist 'S1_wdist/output_dist_time_land_removed/'];
+        pathin=[run4dist 'S1_wdist/python_time/'];
         cid=[pmoe_datum.id];
         mdist(1:n,1:m)=NaN;
         for i=1:m
             iid=cid(i);
-            infile=['OWdist' int2str(iid) '_2.mat'];
-            eval(['load ' pathin infile])
+%            infile=['OWdist' int2str(iid) '_2.mat'];
+%            eval(['load ' pathin infile])
+            infile=[pathin 'station' int2str(iid) '.nc'];
+            dis=ncread(infile,'dis');
+
             mdist(:,i)=dis;
         end
-        if imask_dst<100
-            Lr = 55.5*imask_dst;
-        else
-            Lr=55.5/(imask_dst-100);
-        end
+%         if imask_dst<100
+%             Lr = 55.5*imask_dst;
+%         else
+%             Lr=55.5/(imask_dst-100);
+%         end
+        Lr=imask_dst*0.1; % e-fold time in hr
         dsmsk = exp(-mdist/Lr);
         excl=isnan(mdist);   % mdist is NaN at dry nodes
         dsmsk(excl)=0;

@@ -1,6 +1,6 @@
-#!/home/Elena.Tolkova/miniconda3/bin/python3 -u
 import netCDF4 as nc
 import numpy as np
+import scipy
 from numpy import diff, sign, mean
 from scipy.signal import butter, filtfilt
 import TADfunctions as func
@@ -9,7 +9,7 @@ import time
 import datetime
 from datetime import datetime
 
-# call as TADcalc_mp.py TASK_ID TASK_COUNT filename
+# call as TADcalc_mp.py TASK_ID TASK_COUNT filename iprint tcut
 
 # task array ID
 idtask=int(sys.argv[1])
@@ -23,6 +23,11 @@ ds=nc.Dataset(fn,"r")
 nsta=len(ds['x'][:]) #number of time histories
 tm=ds['time'][:]     #time in sec
 print('nsta=',nsta)
+
+iprint=float(sys.argv[4])  # to print or not to print
+tcut=-1.0 # optional last argument - time(hr) to ditch extrema at the record end
+if (len(sys.argv)==6):
+    tcut=float(sys.argv[5])
 
 nsta_loop=int(np.floor(nsta/ntasks))
 nrmndr=int(np.rint(nsta-ntasks*nsta_loop))
@@ -51,11 +56,12 @@ for i in range(nsers):
         yy=np.array(yy,dtype=np.float64)
         
     y=yy[:,i%500]
-    
+    ymn=min(y)
+    ymx=max(y)   
     sta[i]=int(i+i0+1)  #station/node number starting with 1
-    if min(y)>-99 and max(y)<99 and max(y)-min(y)>0.05:  #Min_Height_Diff=3 cm
+    if ymn>-99 and ymx<99 and ymx-ymn>0.05:  #Min_Height_Diff=5 cm
             
-        datums, LTimes, HTimes, LVals, HVals, nlows, nhighs = func.ComputeDatums(tm,y)
+        datums, LTimes, HTimes, LVals, HVals, nlows, nhighs = func.ComputeDatums(tm,y,iprint,tcut)
 
         xx[i,0:7]=datums
         hh[i,0:nhighs]=HTimes
@@ -63,8 +69,8 @@ for i in range(nsers):
         ll[i,0:nlows]=LTimes
         ll[i,240:(240+nlows)]=LVals
 
-    #if i%1000==0: 
-    print("record ",i+i0,flush=True)    
+    if iprint>0: 
+        print("record ",i+i0,flush=True)    
 
 
 print("writing xx_hh_ll")
