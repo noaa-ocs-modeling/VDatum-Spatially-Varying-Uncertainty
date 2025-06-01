@@ -39,14 +39,17 @@ for i in range(nsta):
     ymn=min(y)
     ymx=max(y)
     print(i,ymn,ymx,np.isnan(y).any())
-    if ymn>-99 and ymx<99 and ymx-ymn>0.05:  #Min_Height_Diff=3 cm
-        datums, LTimes, HTimes, LVals, HVals, nlows, nhighs = func.ComputeDatums(tm,y,tcut,iprint)
-        sta_var[i]=i+1  #station/node number starting with 1
-        xx_var[i,0:7]=datums[:]
-        hh_var[i,0:nhighs]=HTimes[:]
-        hh_var[i,240:(240+nhighs)]=HVals[:]
-        ll_var[i,0:nlows]=LTimes[:]
-        ll_var[i,240:(240+nlows)]=LVals[:]
+    if ymn>-99 and ymx<99:  #no nans
+        if ymx-ymn>0.05:  #Min_Height_Diff=5 cm    
+            datums, LTimes, HTimes, LVals, HVals, nlows, nhighs = func.ComputeDatums(tm,y,tcut,iprint)
+            sta_var[i]=i+1  #station/node number starting with 1
+            xx_var[i,0:7]=datums[:]
+            hh_var[i,0:nhighs]=HTimes[:]
+            hh_var[i,240:(240+nhighs)]=HVals[:]
+            ll_var[i,0:nlows]=LTimes[:]
+            ll_var[i,240:(240+nlows)]=LVals[:]
+        else:
+            xx_var[i,0:7]=0.0
     else:
         xx_var[i,0:7]=-9999.9
         

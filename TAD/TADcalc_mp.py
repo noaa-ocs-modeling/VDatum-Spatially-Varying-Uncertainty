@@ -59,16 +59,19 @@ for i in range(nsers):
     ymn=min(y)
     ymx=max(y)   
     sta[i]=int(i+i0+1)  #station/node number starting with 1
-    if ymn>-99 and ymx<99 and ymx-ymn>0.05:  #Min_Height_Diff=5 cm
+    if ymn>-99 and ymx<99:
+        if ymx-ymn>0.05:  #Min_Height_Diff=5 cm
             
-        datums, LTimes, HTimes, LVals, HVals, nlows, nhighs = func.ComputeDatums(tm,y,iprint,tcut)
+            datums, LTimes, HTimes, LVals, HVals, nlows, nhighs = func.ComputeDatums(tm,y,iprint,tcut)
 
-        xx[i,0:7]=datums
-        hh[i,0:nhighs]=HTimes
-        hh[i,240:(240+nhighs)]=HVals
-        ll[i,0:nlows]=LTimes
-        ll[i,240:(240+nlows)]=LVals
-
+            xx[i,0:7]=datums
+            hh[i,0:nhighs]=HTimes
+            hh[i,240:(240+nhighs)]=HVals
+            ll[i,0:nlows]=LTimes
+            ll[i,240:(240+nlows)]=LVals
+        else:
+            xx[i,0:7]=0.0
+            
     if iprint>0: 
         print("record ",i+i0,flush=True)    
 

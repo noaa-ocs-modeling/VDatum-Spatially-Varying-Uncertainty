@@ -27,15 +27,16 @@ while 1
 end
 fclose(fid);
 
-%-- set t=0 at aa0 ----
-aa0=datetime('2023-01-01T00:00:00.000-05:00','InputFormat','yyyy-MM-dd''T''HH:mm:ss.SSSXXX','TimeZone','UTC');
 %-- pieces to form a query ---
-s1='https://nwis.waterservices.usgs.gov/nwis/iv/?sites=';
 sstart='2023-01-01T00:00:00.000-05:00';
 send='2023-11-10T23:59:59.999-05:00';
-s2=['&parameterCd=00065&startDT=' sstart '&endDT=' send '&siteStatus=all&format=json'];
-j=0; % no-data counter 
+s1='https://nwis.waterservices.usgs.gov/nwis/iv/?format=json&sites=';
+s2=['&parameterCd=00065&startDT=',starttime,'&endDT=',endtime,'&siteStatus=ALL'];
 
+%-- set t=0 at aa0 ----
+aa0=datetime(sstart,'InputFormat','yyyy-MM-dd''T''HH:mm:ss.SSSXXX','TimeZone','UTC');
+
+j=0; % no-data counter 
 for nn=1:nsta
     ssite=gname{nn}
     clear s ss h t q 
