@@ -3,6 +3,10 @@
 
 
 """
+Developed by Lei Shi in matlab
+Reformated by Liujuan Tang 01/29/2020 in matlab
+Modified/Optimized and converted to python by Mojgan Rostaminia 09/03/2025
+
 Create shortest water-path distance for each gauge:
 
 
