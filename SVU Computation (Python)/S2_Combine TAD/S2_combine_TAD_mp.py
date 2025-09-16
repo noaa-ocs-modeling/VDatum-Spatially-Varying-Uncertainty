@@ -15,7 +15,7 @@ Notes
 - This script DOES NOT decode markers or strip padding; correlation coefficient code(S3) should decode before analysis.
 
 How to run
-python S2_combine_TAD_mp.py --pattern *xx_hh_ll_mp*.nc" --out-prefix ""   --chunk-stations 8192
+python S2_combine_TAD_mp.py --pattern "xx_hh_ll_mp*.nc" --out-prefix ""   --chunk-stations 8192
 Chunk stations is related to Pacific grid.
 
 Created in Matlab by Liujua.Tang@noaa.gov 01/27/2020
