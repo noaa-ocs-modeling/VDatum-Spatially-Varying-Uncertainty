@@ -1,6 +1,6 @@
 % Example of using known modeled datum errors at gages 
 % for estimating how these errors correlation coefficient  
-% depends on distance (of any kind) between the gages, and
+% depends on separation (of any kind) between the gages, and
 % for testing hypotheses about how this coefficient can be 
 % approximated with some prescribed function(s)  
 %----------------------------------------------------------
@@ -9,9 +9,7 @@
 % variables:
 % m, int32 - number of gages
 % mdist, m x m double - matrix of gage2gage distances returned by wdist 
-%              (measured on the mesh along the cell edges)
-% gdist, m x m double - matrix of gage2gage geophysical distances
-%              (measured along the Great circle)
+%              (measured on the mesh along the cell edges) or travel times
 % cid, 1 x m int32 - string of gages' IDs
 % mhh,mhw,mlw,mll, 1 x m single - observed datums
 % lv, 8 x m double - modeled datums at gages as in TAD output, 
@@ -20,7 +18,7 @@
 %     for affecting the error correlation (for instance, coef(i,j) - 
 %     correlation of tidal envelopes), set to ones(m) is none used
 % eestn, 4 x m double - rows of known model errors for mhh,mhw,mlw,mll
-% xmax - max distance to look for any meaninfull correlation
+% xmax - max distance/time to look for any meaninfull correlation
 % nb - number of bins to divide [0 xmax] into
 % xbins, 1 x nb double - bin edges on the right side
 %------ output of correlation_estimator -------------
@@ -29,25 +27,31 @@
 % yyy, 4 x nb double - error correlation coefficient estimate
 %                                      in a bin, per datum
 % ---------------------------------------------------
-% L - correlation distance as estimated from fitting yyy vs xxx
+% L - correlation distance/time as estimated from fitting yyy vs xxx
 %%%%%%%%%%%%%%%   elena.tolkova@noaa.gov   %%%%%%%%%%%%
 
 %*** gage order must be the same in all data structures ***
 
 clear variables
+its_shortest=0;
+if its_shortest
+    pathin='python_dist/';
+    xlabl='km';
+    xmax=600; %largest distance at which correlation calculation stops
+else
+    pathin='python_wtime/';
+    xlabl='min';
+    xmax=500;  %largest travel time at which correlation calculation stops
+end
 
-path_grid='C:\Users\elena.tolkova\Documents\EastCoast\jet_run_EC1EC2DEv9\';
+path_grid='C:\Users\elena.tolkova\Documents\EastCoast\jet_run_EC1-EC5v0\';
 eval(['load ' path_grid 'pmoe_datum'])
 
 cid=[pmoe_datum.id];     % station id
-i=find(cid==8410140);  % distance map missing
-pmoe_datum(i)=[];
-cid(i)=[];
 nodes=int32([pmoe_datum.node]);  % grid node # at station location
 m=length(nodes)
 % -------------------- gage 2 gage distances, wdist -----------------
 mdist(1:m,1:m)=NaN;
-pathin='python_dist/';
 for i=1:m
     iid=cid(i);
     infile=[pathin 'station' int2str(iid) '.nc'];
@@ -62,8 +66,8 @@ mhw= [pmoe_datum.omhw];
 mlw= [pmoe_datum.omlw];
 mll= [pmoe_datum.omllw];
 % -------------------- calculated datums at gages -----------------
-ver='v21';
-path_lv=['C:\Users\elena.tolkova\Documents\EastCoast\jet_run_EC1EC2DE' ver '\'];
+ver='v0';
+path_lv=path_grid;
 temp=dir([path_lv 'mpdatums/']);
 nfiles=length(temp)
 
@@ -96,18 +100,12 @@ eestn(2,:)=mhw-lv(3,:);
 eestn(3,:)=-(mlw-lv(7,:));
 eestn(4,:)=-(mll-lv(8,:));
 % ---------------- bins for averaging corr products -------------
-xmax=1200; %largest distance at which correlation calculation stops
-nb=31; 
-xbins=logspace(0,2,nb-1); xbins=(xmax/100)*(xbins-1)+1;
-xbins=[xbins xmax];
-dx=(xmax-xbins(27))/4;
-for i=28:nb
-    xbins(i)=xbins(i-1)+dx;
-end
+nb=30; 
+xbins=logspace(0,1,nb); xbins=(xmax/10)*(xbins-1)+1;
 
 whatelse=ones(m);
 
-[nnn,xxx,yyy]=correlation_estimator(m,eestn,mdist,whatelse,xbins,1);
+[nnn,xxx,yyy]=correlation_estimator(m,eestn,mdist,whatelse,xbins,0,its_shortest,xlabl);
 
 % mark bins containing fewer than nmin entries for removal in ex,ey
 clear msk
@@ -118,16 +116,21 @@ yyy(1:4,msk)=NaN;
 
 ex=[];
 ey=[];
-d2fit=200; % distance within which to fit 
+d2fit=100; % distance within which to fit 
 [tmp K]=min(abs(xxx-d2fit));
 
 figure
+ax=axes('Position',[0.08 0.15 0.88 0.8]);
 hold on
 for jj=1:4
     plot(xxx,yyy(jj,:),'.','markersize',20)
-    ex=[ex, xxx(1:K)];
-    ey=[ey, yyy(jj,1:K)];
+%     ex=[ex, xxx(1:K)];
+%     ey=[ey, yyy(jj,1:K)];
 end
+ex=xxx;
+ey=sum(yyy)/4;
+plot(ex,ey,'^','markersize',10,'markerfacecolor','r')
+
 clear msk
 msk=isnan(ex);
 ex(msk)=[];
@@ -137,9 +140,9 @@ xlim([0 xmax])
 grid on
 ax=gca;
 ax.FontSize=12;
-xlabel('km','fontsize',14);
+xlabel(xlabl,'fontsize',14);
 
-% fit correlation coefficient estimate (ey vs ex) with L/(x+L) 
+% fit correlation coefficient estimate (ey vs ex) 
 Ke=length(ex);
 LL=0:0.1:100;
 nL=length(LL);
@@ -149,20 +152,25 @@ rr(1:Ke)=0;
 for i=2:nL
     L=LL(i);
     for j=1:Ke
-        rr(j)=abs(ey(j)-L/(ex(j)+L));
+        rr(j)=abs(ey(j)-exp(-sqrt(ex(j)/L)));
+%        rr(j)=abs(ey(j)-L/(ex(j)+L));
     end
     r(i)=sum(rr);
 end
-[tmp iL]=min(r(2:end));
+[tmp iL]=min(r(2:end))
 L=ceil(LL(iL))
 xr=0:0.1:500;
 for j=1:length(xr)
-    rr(j)=L/(xr(j)+L);
+    rr(j)=exp(-sqrt(xr(j)/L));
+%    rr(j)=L/(xr(j)+L);
 end
+hold on
 plot(xr,rr,'linewidth',2)
 xlim([0 xxx(K+5)])
+ylim([-0.1 1])
+yticks([0:0.2:1])
 grid on
-legend('mhh','mhw','mlw','mll','L/(x+L)')
+legend('mhh','mhw','mlw','mll','mean','exp(-x/L)')
 title('error correlation estimate vs mdist')
 %----------------------------------------------------------
 % this function uses known modeled datum errors at gages 
@@ -171,37 +179,46 @@ title('error correlation estimate vs mdist')
 % for testing hypotheses about how this coefficient can be 
 % approximated with some prescribed function(s)    
 
-function [nnn,xxx,yyy]=correlation_estimator(m,eestn,dist,whatelse,xbins,iplotprod)
+function [nnn,xxx,yyy]=correlation_estimator(m,eestn,dist,whatelse,xbins,iplotprod,its_shortest,xlabl)
 
     nb=length(xbins);
     if iplotprod  % plot error products for m(m-1)/2 gage pairs, mhhw
-        
-        z=eestn(1,:);
-        a=mean(z)
-        estn =z-a;
-        m_error = std(estn);
-        estn=estn/m_error;
-        ecorr=estn'*estn;
-
+    
         figure
+        ax=axes('Position',[0.04 0.18,0.85,0.75]);
+        yyaxis left
         hold on
         xlim([0 xbins(end)])
-        for i=1:m
-            plot(dist(i,i:m),ecorr(i,i:m),'.','markersize',9)
-        end    
+
+        for jj=1:4
+            z=eestn(jj,:);
+            a=mean(z);
+            estn =z-a;
+            m_error = std(estn);
+            estn=estn/m_error;
+            ecorr=estn'*estn;
+            
+            if jj<3
+                c='b';
+            else
+                c='g';
+            end
+
+            for i=1:m
+                plot(dist(i,i:m),ecorr(i,i:m),'.','color',c,'markersize',9)
+            end  
+        end
         xticks(xbins)
         xlb=cell(1,nb);
-        for i=6:6:nb
+        for i=6:3:nb
             xlb{i}=int2str(round(xbins(i)));
         end
         ax=gca;
         ax.XTickLabels=xlb;
         xtickangle(45)
-        ax.TickLength=[0.05 0.025]
+        ax.TickLength=[0.05 0.005]
         yticks([-20:10:30])
         ax.FontSize=12;
-        xlabel('km','fontsize',14)
-        title('error products vs mdist')
     end
 
 %                      %  placeholders for:
@@ -246,6 +263,13 @@ function [nnn,xxx,yyy]=correlation_estimator(m,eestn,dist,whatelse,xbins,iplotpr
             end
         end
     end
+    
+    if iplotprod       
+        yyaxis right
+        xlim([0 xbins(end)])
+        bar(xxx,nnn,'edgeColor','none');
+    end
+    xlabel(xlabl,'fontsize',14)
 
 end
 
